@@ -144,7 +144,7 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
-    const [state, setState] = useState<AppState>('CHAOS');
+    const [state, setState] = useState<AppState>('FORMED');
     const [rotationSpeed, setRotationSpeed] = useState<number>(0.3); // 固定基础旋转速度
     const [rotationBoost, setRotationBoost] = useState<number>(0); // 额外加速度
     const [webcamEnabled, setWebcamEnabled] = useState<boolean>(true);

@@ -1,8 +1,8 @@
 
 import React, { useContext } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, OrbitControls, Stars, Sparkles } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
+import { OrbitControls, Stars, Sparkles } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import TreeSystem from './TreeSystem';
 import CrystalOrnaments from './CrystalOrnaments';
@@ -29,8 +29,7 @@ const Rig = () => {
 const Experience: React.FC = () => {
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
+      dpr={[1, 1.25]}
       camera={{ position: [0, 0, 18], fov: 45, near: 0.1, far: 100 }}
       gl={{
         antialias: false,
@@ -49,30 +48,19 @@ const Experience: React.FC = () => {
         position={[10, 20, 10]}
         angle={0.5}
         penumbra={1}
-        intensity={8}
+        intensity={6}
         color="#fff0dd"
-        castShadow
       />
-      <pointLight position={[-10, -5, -10]} intensity={3} color="#004225" />
-      <pointLight position={[0, 0, 0]} intensity={1} color="#ffaa00" distance={10} />
+      <pointLight position={[-10, -5, -10]} intensity={2} color="#004225" />
+      <pointLight position={[0, 0, 0]} intensity={0.8} color="#ffaa00" distance={10} />
 
       {/* Environment */}
-      <Stars radius={50} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
+      <Stars radius={40} depth={30} count={800} factor={2} saturation={0} fade speed={0.6} />
 
       {/* 多层次闪光星星 - 模拟真实夜空中部分星星闪烁 */}
       {/* 慢速闪烁的金色星星 */}
-      <Sparkles count={300} scale={25} size={4} speed={0.3} opacity={0.6} color="#ffd700" />
-      <Sparkles count={200} scale={30} size={3} speed={0.2} opacity={0.4} color="#ffffcc" />
-
-      {/* 中速闪烁的白色/银色星星 */}
-      <Sparkles count={250} scale={20} size={2.5} speed={0.5} opacity={0.5} color="#ffffff" />
-      <Sparkles count={150} scale={28} size={2} speed={0.4} opacity={0.3} color="#e6e6fa" />
-
-      {/* 快速闪烁的彩色点缀 */}
-      <Sparkles count={100} scale={18} size={2} speed={0.7} opacity={0.4} color="#ff6b6b" />
-      <Sparkles count={100} scale={18} size={2} speed={0.65} opacity={0.4} color="#4ecdc4" />
-
-      <Environment preset="city" environmentIntensity={0.5} />
+      <Sparkles count={120} scale={20} size={3} speed={0.25} opacity={0.5} color="#ffd700" />
+      <Sparkles count={80} scale={22} size={2} speed={0.2} opacity={0.3} color="#ffffff" />
 
       {/* Main Content */}
       <group position={[0, -2, 0]}>
@@ -91,17 +79,13 @@ const Experience: React.FC = () => {
       />
       <Rig />
 
-      {/* Post Processing - Optimized for Clarity (No DoF) */}
+      {/* Post Processing - Lightweight */}
       <EffectComposer enableNormalPass={false}>
         <Bloom
           luminanceThreshold={1.0}
-          mipmapBlur
-          intensity={0.6}
-          radius={0.4}
-          levels={8}
+          intensity={0.4}
+          radius={0.3}
         />
-        <Noise opacity={0.04} />
-        <Vignette eskil={false} offset={0.1} darkness={1.0} />
       </EffectComposer>
     </Canvas>
   );

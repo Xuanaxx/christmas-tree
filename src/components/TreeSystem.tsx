@@ -17,40 +17,8 @@ extend({ FoliageMaterial });
 declare module '@react-three/fiber' {
   interface ThreeElements {
     foliageMaterial: any
-    shimmerMaterial: any
   }
 }
-
-// --- Shimmer Material ---
-const ShimmerMaterial = shaderMaterial(
-  { uTime: 0, uColor: new THREE.Color('#ffffff') },
-  // Vertex Shader
-  `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  // Fragment Shader
-  `
-    uniform float uTime;
-    uniform vec3 uColor;
-    varying vec2 vUv;
-    void main() {
-      // 扫光条纹位置，周期性移动
-      float pos = mod(uTime * 0.8, 2.5) - 0.5;
-      // 计算条纹强度 (倾斜)
-      float bar = smoothstep(0.0, 0.2, 0.2 - abs(vUv.x + vUv.y * 0.5 - pos));
-
-      // 基础透明度 0，扫光处透明度降低以减少对照片的影响
-      float alpha = bar * 0.05;
-
-      gl_FragColor = vec4(uColor, alpha);
-    }
-  `
-);
-extend({ ShimmerMaterial });
 
 // --- Photo Component ---
 const PolaroidPhoto: React.FC<{ url: string; position: THREE.Vector3; rotation: THREE.Euler; scale: number; id: string; shouldLoad: boolean; year: number }> = ({ url, position, rotation, scale, id, shouldLoad, year }) => {
@@ -134,11 +102,6 @@ const PolaroidPhoto: React.FC<{ url: string; position: THREE.Vector3; rotation: 
           <meshStandardMaterial color="#333" />
         )}
       </mesh>
-      {/* 扫光效果覆盖层 */}
-      <mesh position={[0, 0.15, 0.02]} scale={[0.9, 0.9, 1]}>
-        <planeGeometry args={[1, 1]} />
-        <shimmerMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
     </group>
   );
 };
@@ -146,7 +109,7 @@ const PolaroidPhoto: React.FC<{ url: string; position: THREE.Vector3; rotation: 
 // --- Main Tree System ---
 const TreeSystem: React.FC = () => {
   const { state, rotationSpeed, rotationBoost, pointer, clickTrigger, setSelectedPhotoUrl, selectedPhotoUrl, panOffset } = useContext(TreeContext) as TreeContextType;
-  const { camera, raycaster } = useThree();
+  const { camera } = useThree();
   const pointsRef = useRef<THREE.Points>(null);
   const lightsRef = useRef<THREE.InstancedMesh>(null);
   const trunkRef = useRef<THREE.Mesh>(null);
@@ -178,12 +141,12 @@ const TreeSystem: React.FC = () => {
 
   // --- Data Generation ---
   const { foliageData, photosData, lightsData } = useMemo(() => {
-    const particleCount = 4500;
+    const particleCount = 2000;
     const foliage = new Float32Array(particleCount * 3); const foliageChaos = new Float32Array(particleCount * 3); const foliageTree = new Float32Array(particleCount * 3); const sizes = new Float32Array(particleCount);
     const sphere = random.inSphere(new Float32Array(particleCount * 3), { radius: 18 }); for (let i = 0; i < particleCount * 3; i++) foliageChaos[i] = sphere[i];
     for (let i = 0; i < particleCount; i++) { const i3 = i * 3; const h = Math.random() * 14; const coneRadius = (14 - h) * 0.45; const angle = h * 3.0 + Math.random() * Math.PI * 2; foliageTree[i3] = Math.cos(angle) * coneRadius; foliageTree[i3 + 1] = h - 6; foliageTree[i3 + 2] = Math.sin(angle) * coneRadius; sizes[i] = Math.random() * 1.5 + 0.5; }
 
-    const lightCount = 300;
+    const lightCount = 120;
     const lightChaos = new Float32Array(lightCount * 3); const lightTree = new Float32Array(lightCount * 3); const lSphere = random.inSphere(new Float32Array(lightCount * 3), { radius: 20 });
     for (let i = 0; i < lightCount * 3; i++) lightChaos[i] = lSphere[i];
     for (let i = 0; i < lightCount; i++) { const i3 = i * 3; const t = i / lightCount; const h = t * 13; const coneRadius = (14 - h) * 0.48; const angle = t * Math.PI * 25; lightTree[i3] = Math.cos(angle) * coneRadius; lightTree[i3 + 1] = h - 6; lightTree[i3 + 2] = Math.sin(angle) * coneRadius; }
@@ -219,9 +182,11 @@ const TreeSystem: React.FC = () => {
       // --- FORMED: Time Spiral Layout ---
       // 螺旋上升: i 越大 (越新)，h 越高
       const t = i / (photoCount - 1);
-      const h = t * 14 - 7; // 高度范围 -7 到 7
-      const radius = (7 - (h + 7)) * 0.4 + 1.5; // 树锥形半径
-      const angle = t * Math.PI * 10; // 螺旋圈数 (5圈)
+      const h = t * 12 - 6; // 高度范围 -6 到 6
+      const maxRadius = 6.5;
+      const minRadius = 1.2;
+      const radius = maxRadius * (1 - t) + minRadius; // 清晰锥形半径
+      const angle = t * Math.PI * 8; // 螺旋圈数 (4圈)
 
       const treeX = Math.cos(angle) * radius;
       const treeY = h;
@@ -256,7 +221,7 @@ const TreeSystem: React.FC = () => {
           (Math.random() - 0.5) * 0.1 // Z: 微小倾斜
         ],
         treeRot: [0, -angle + Math.PI / 2, 0], // 面向外
-        scale: 0.9 + Math.random() * 0.3,
+        scale: 0.7 + Math.random() * 0.2,
         image: imageUrl,
         color: 'white'
       });
@@ -391,19 +356,6 @@ const TreeSystem: React.FC = () => {
       }
       lightsRef.current.instanceMatrix.needsUpdate = true;
     }
-    // 更新所有照片的扫光时间
-    photoObjects.forEach(obj => {
-      if (obj.ref.current) {
-        // 查找 shimmerMaterial 并更新 uTime
-        obj.ref.current.traverse((child) => {
-          // @ts-ignore
-          if (child.material && child.material.uniforms && child.material.uniforms.uTime) {
-            // @ts-ignore
-            child.material.uniforms.uTime.value = state3d.clock.getElapsedTime() + parseInt(obj.id.split('-')[1] || '0');
-          }
-        });
-      }
-    });
     if (trunkRef.current) {
       const trunkScale = THREE.MathUtils.smoothstep(ease, 0.3, 1.0); trunkRef.current.scale.set(trunkScale, ease, trunkScale); trunkRef.current.position.y = 1; trunkRef.current.rotation.y = treeRotation.current;
     }
@@ -423,6 +375,16 @@ const TreeSystem: React.FC = () => {
 
   return (
     <group ref={groupRef}>
+      <mesh position={[0, 1, 0]}>
+        <coneGeometry args={[6.5, 14, 16, 1, true]} />
+        <meshStandardMaterial
+          color="#0b3d2e"
+          transparent
+          opacity={0.18}
+          depthWrite={false}
+          roughness={1}
+        />
+      </mesh>
       <mesh ref={trunkRef} position={[0, 0, 0]}><cylinderGeometry args={[0.2, 0.8, 14, 8]} /><meshStandardMaterial color="#3E2723" roughness={0.9} metalness={0.1} /></mesh>
       <points ref={pointsRef}> <bufferGeometry> <bufferAttribute attach="attributes-position" count={foliageData.current.length / 3} array={foliageData.current} itemSize={3} /> <bufferAttribute attach="attributes-size" count={foliageData.sizes.length} array={foliageData.sizes} itemSize={1} /> </bufferGeometry> <foliageMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} /> </points>
       <instancedMesh ref={lightsRef} args={[undefined, undefined, lightsData.count]}><sphereGeometry args={[0.05, 8, 8]} /><meshStandardMaterial color="#ffddaa" emissive="#ffbb00" emissiveIntensity={3} toneMapped={false} /></instancedMesh>
