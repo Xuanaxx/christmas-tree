@@ -16,7 +16,7 @@ const CrystalOrnaments: React.FC = () => {
   const currentPan = useRef({ x: 0, y: 0 });
 
   const ornaments = useMemo(() => {
-    const count = 50; // 减少装饰物数量，让照片更突出
+    const count = 30; // 减少装饰物数量，让照片更突出
     const items = [];
 
     // Christmas colors: Red, Gold, Green
@@ -26,7 +26,9 @@ const CrystalOrnaments: React.FC = () => {
       // Tree Form Data
       const t = i / count;
       const h = t * 11 - 5.5;
-      const r = (6 - (h + 5.5)) * 0.5 + 0.5;
+      const maxRadius = 5.5;
+      const minRadius = 1.0;
+      const r = maxRadius * (1 - t) + minRadius;
       const angle = t * Math.PI * 13;
 
       // Chaos Form Data (Outside photos)
@@ -125,7 +127,7 @@ const CrystalOrnaments: React.FC = () => {
   return (
     <group ref={groupRef}>
       {ornaments.map((o, i) => (
-        <mesh key={i} scale={o.scale * 0.7} castShadow receiveShadow>
+        <mesh key={i} scale={o.scale * 0.7}>
           {o.type === 'sphere' && <sphereGeometry args={[1, 16, 16]} />}
           {o.type === 'box' && <boxGeometry args={[1, 1, 1]} />}
 
